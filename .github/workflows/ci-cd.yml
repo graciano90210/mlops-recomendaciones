@@ -1,0 +1,215 @@
+name: 🚀 MLOps Pipeline - Build & Deploy
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: mlops-recomendaciones
+  ECS_SERVICE: mlops-api-service
+  ECS_CLUSTER: mlops-cluster
+  ECS_TASK_DEFINITION: aws-ecs-task-definition.json
+
+jobs:
+  # 🧪 Testing Job
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: 🧪 Run tests
+      run: |
+        python test_pipeline.py
+
+    - name: 📊 Test API endpoints
+      run: |
+        python -c "
+        import sys
+        import subprocess
+        import time
+        import requests
+        
+        # Start API in background
+        proc = subprocess.Popen([sys.executable, 'api_nospark.py'])
+        time.sleep(10)  # Wait for startup
+        
+        try:
+            # Test health endpoint
+            response = requests.get('http://localhost:8000/salud', timeout=5)
+            assert response.status_code == 200
+            print('✅ Health check passed')
+            
+            # Test recommendation endpoint
+            response = requests.get('http://localhost:8000/recomendar/40', timeout=10)
+            assert response.status_code == 200
+            print('✅ Recommendation endpoint passed')
+            
+        finally:
+            proc.terminate()
+            proc.wait()
+        "
+
+  # 🐳 Docker Build Job
+  build:
+    name: 🐳 Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐳 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: 🏗️ Build Docker image
+      run: |
+        docker build -t mlops-api:${{ github.sha }} .
+        docker tag mlops-api:${{ github.sha }} mlops-api:latest
+
+    - name: 🧪 Test Docker container
+      run: |
+        # Start container
+        docker run -d --name test-container -p 8000:8000 mlops-api:latest
+        
+        # Wait for startup
+        sleep 15
+        
+        # Test health endpoint
+        curl -f http://localhost:8000/salud || exit 1
+        
+        # Test recommendation endpoint
+        curl -f http://localhost:8000/recomendar/40 || exit 1
+        
+        # Cleanup
+        docker stop test-container
+        docker rm test-container
+
+    - name: 💾 Save Docker image
+      run: |
+        docker save mlops-api:latest > mlops-api.tar
+
+    - name: 📤 Upload Docker image artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-image
+        path: mlops-api.tar
+        retention-days: 1
+
+  # 🚀 Deploy Job (only on main branch)
+  deploy:
+    name: 🚀 Deploy to AWS
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📤 Download Docker image
+      uses: actions/download-artifact@v4
+      with:
+        name: docker-image
+
+    - name: 🐳 Load Docker image
+      run: |
+        docker load < mlops-api.tar
+
+    - name: ⚙️ Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: 🔑 Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: 🏗️ Build, tag, and push image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Tag image with commit SHA and latest
+        docker tag mlops-api:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag mlops-api:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+        # Push both tags
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+        # Output image URI
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    - name: 📋 Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        container-name: mlops-api
+        image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+    - name: 🚀 Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ env.ECS_SERVICE }}
+        cluster: ${{ env.ECS_CLUSTER }}
+        wait-for-service-stability: true
+
+    - name: ✅ Deployment status
+      run: |
+        echo "🎉 Deployment completed successfully!"
+        echo "📱 API URL: [Add your load balancer URL here]"
+        echo "📊 Monitoring: Check CloudWatch logs"
+
+  # 📊 Security Scan (optional)
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📤 Download Docker image
+      uses: actions/download-artifact@v4
+      with:
+        name: docker-image
+
+    - name: 🐳 Load Docker image
+      run: |
+        docker load < mlops-api.tar
+
+    - name: 🔒 Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'mlops-api:latest'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: 📤 Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'

@@ -1,0 +1,99 @@
+# 🐍 Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 🧪 Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# 🔍 IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 🌐 Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# 📊 Jupyter
+.ipynb_checkpoints
+
+# 🐳 Docker
+.dockerignore
+
+# ☁️ AWS
+.aws/
+*.pem
+
+# 📝 Logs
+*.log
+logs/
+
+# 🔑 Secrets
+.env.local
+.env.production
+secrets.json
+credentials.json
+
+# 📦 Dependencies
+node_modules/
+
+# 🗂️ OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 🔄 Temporary
+*.tmp
+*.temp
+.tmp/
+
+# 📈 Model artifacts (opcional - comentar si quieres versionar modelos)
+# *.pkl
+# *.h5
+# *.pb
+# models/
+
+# 🏗️ Build artifacts
+*.exe
+*.msi
+*.deb
+*.rpm

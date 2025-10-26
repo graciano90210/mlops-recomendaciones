@@ -1,0 +1,50 @@
+{
+  "family": "mlops-recomendaciones-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::322614675421:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::322614675421:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "mlops-api",
+      "image": "322614675421.dkr.ecr.us-east-1.amazonaws.com/mlops-recomendaciones:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/mlops-recomendaciones",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "environment": [
+        {
+          "name": "ENV",
+          "value": "production"
+        },
+        {
+          "name": "PORT",
+          "value": "8000"
+        }
+      ],
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8000/salud || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

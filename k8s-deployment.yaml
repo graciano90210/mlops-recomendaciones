@@ -1,0 +1,120 @@
+# 🚢 Configuración de Kubernetes para API MLOps
+# =============================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlops-recomendaciones
+  labels:
+    name: mlops-recomendaciones
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlops-api-deployment
+  namespace: mlops-recomendaciones
+  labels:
+    app: mlops-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mlops-api
+  template:
+    metadata:
+      labels:
+        app: mlops-api
+    spec:
+      containers:
+      - name: mlops-api
+        image: 322614675421.dkr.ecr.us-east-1.amazonaws.com/mlops-recomendaciones:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: ENV
+          value: "production"
+        - name: PORT
+          value: "8000"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /salud
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /salud
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-api-service
+  namespace: mlops-recomendaciones
+  labels:
+    app: mlops-api
+spec:
+  selector:
+    app: mlops-api
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: LoadBalancer
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mlops-api-hpa
+  namespace: mlops-recomendaciones
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mlops-api-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# ConfigMap for configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mlops-api-config
+  namespace: mlops-recomendaciones
+data:
+  ENV: "production"
+  LOG_LEVEL: "info"
+  API_TITLE: "MLOps Recomendaciones API"
