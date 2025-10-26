@@ -1,0 +1,38 @@
+title: MLOps Recommendation System
+description: 🚀 Sistema completo de MLOps para recomendaciones con FastAPI, Docker y AWS
+author: Juan Fernando Graciano
+theme: minima
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# GitHub Pages configuration
+baseurl: "/mlops-recomendaciones"
+url: "https://graciano90210.github.io"
+
+# Social links
+github_username: graciano90210
+linkedin_username: juan-fernando-graciano
+
+# SEO
+lang: es
+image: /assets/images/logo.png
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  hard_wrap: false
+
+# Include/Exclude
+include:
+  - _pages
+exclude:
+  - .venv/
+  - __pycache__/
+  - "*.pyc"
+  - Dockerfile
+  - docker-compose.yml
+  - requirements.txt
