@@ -253,10 +253,10 @@ Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) par
 
 ## 👨‍💻 **Autor**
 
-**Tu Nombre**
-- GitHub: [@tu-usuario](https://github.com/tu-usuario)
-- LinkedIn: [tu-perfil](https://linkedin.com/in/tu-perfil)
-- Email: tu-email@example.com
+**Juan Fernando Graciano**
+- GitHub: [@graciano90210](https://github.com/graciano90210)
+- LinkedIn: [Conecta conmigo](https://linkedin.com/in/juan-fernando-graciano)
+- Email: graciano90210@gmail.com
 
 ## 🙏 **Agradecimientos**
 
