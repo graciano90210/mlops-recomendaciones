@@ -4,11 +4,13 @@ pandas>=2.1
 scikit-learn>=1.3
 
 # DL & training
-torch==2.2.2+cpu; platform_system != 'Linux' or platform_machine == 'x86_64'
+# NOTA Windows: instala torch por separado con el índice oficial CPU de PyTorch.
+#   pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio
 pytorch-lightning>=2.2
 
-# ANN
-faiss-cpu>=1.7.4
+# ANN (opcional)
+# faiss-cpu no es obligatorio en Windows; el código hace fallback a búsqueda brute-force si no está.
+# Para Linux/macOS puedes instalar faiss-cpu manualmente si lo deseas.
 
 # API
 fastapi>=0.110
